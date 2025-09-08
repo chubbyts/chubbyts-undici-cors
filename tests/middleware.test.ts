@@ -1,171 +1,130 @@
-import type { Response, ServerRequest } from '@chubbyts/chubbyts-http-types/dist/message';
-import { expect, test, vi } from 'vitest';
+import { expect, test } from 'vitest';
 import { useFunctionMock } from '@chubbyts/chubbyts-function-mock/dist/function-mock';
 import { useObjectMock } from '@chubbyts/chubbyts-function-mock/dist/object-mock';
-import type { ResponseFactory } from '@chubbyts/chubbyts-http-types/dist/message-factory';
-import type { Handler } from '@chubbyts/chubbyts-http-types/dist/handler';
+import type { Handler } from '@chubbyts/chubbyts-undici-server/dist/server';
+import { Response, ServerRequest } from '@chubbyts/chubbyts-undici-server/dist/server';
 import type { HeadersNegotiator, MethodNegotiator, OriginNegotiator } from '../src/negotiation';
 import { createCorsMiddleware } from '../src/middleware';
 
 test('preflight without origin', async () => {
-  const request = { method: 'OPTIONS' } as ServerRequest;
-
-  const end = vi.fn();
-
-  const response = { body: { end } } as unknown as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'OPTIONS' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([
-    { parameters: [204], return: response },
-  ]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: undefined },
+    { parameters: [serverRequest], return: undefined },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
 
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
 
-  const middleware = createCorsMiddleware(responseFactory, originNegotiator, methodNegotiator, headersNegotiator);
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
 
-  expect(await middleware(request, handler)).toBe(response);
+  const response = await middleware(serverRequest, handler);
 
-  expect(end).toHaveBeenCalledTimes(1);
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);
 });
 
 test('preflight with origin, without method, without headers', async () => {
-  const request = { method: 'OPTIONS' } as ServerRequest;
-
-  const end = vi.fn();
-
-  const response = { body: { end } } as unknown as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'OPTIONS' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([
-    { parameters: [204], return: response },
-  ]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: 'https://mydomain.tld' },
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([
-    { name: 'negotiate', parameters: [request], return: false },
+    { name: 'negotiate', parameters: [serverRequest], return: false },
   ]);
 
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([
-    { name: 'negotiate', parameters: [request], return: false },
+    { name: 'negotiate', parameters: [serverRequest], return: false },
   ]);
 
-  const middleware = createCorsMiddleware(responseFactory, originNegotiator, methodNegotiator, headersNegotiator);
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
 
-  expect(await middleware(request, handler)).toEqual({
-    ...response,
-    headers: {
-      ...response.headers,
-      'access-control-allow-origin': ['https://mydomain.tld'],
-      'access-control-allow-credentials': ['false'],
-      'access-control-max-age': ['600'],
-    },
-  });
+  const response = await middleware(serverRequest, handler);
 
-  expect(end).toHaveBeenCalledTimes(1);
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-credentials": "false",
+      "access-control-allow-origin": "https://mydomain.tld",
+      "access-control-max-age": "600",
+    }
+  `);
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);
 });
 
 test('preflight with origin, with method, with headers, minimal', async () => {
-  const request = { method: 'OPTIONS' } as ServerRequest;
-
-  const end = vi.fn();
-
-  const response = { body: { end } } as unknown as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'OPTIONS' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([
-    { parameters: [204], return: response },
-  ]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: 'https://mydomain.tld' },
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([
-    { name: 'negotiate', parameters: [request], return: true },
+    { name: 'negotiate', parameters: [serverRequest], return: true },
     { name: 'allowMethods', value: ['GET', 'POST'] },
   ]);
 
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([
-    { name: 'negotiate', parameters: [request], return: true },
+    { name: 'negotiate', parameters: [serverRequest], return: true },
     { name: 'allowHeaders', value: ['Accept', 'Content-Type'] },
   ]);
 
-  const middleware = createCorsMiddleware(responseFactory, originNegotiator, methodNegotiator, headersNegotiator);
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
 
-  expect(await middleware(request, handler)).toEqual({
-    ...response,
-    headers: {
-      ...response.headers,
-      'access-control-allow-origin': ['https://mydomain.tld'],
-      'access-control-allow-methods': ['GET', 'POST'],
-      'access-control-allow-headers': ['Accept', 'Content-Type'],
-      'access-control-allow-credentials': ['false'],
-      'access-control-max-age': ['600'],
-    },
-  });
+  const response = await middleware(serverRequest, handler);
 
-  expect(end).toHaveBeenCalledTimes(1);
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-credentials": "false",
+      "access-control-allow-headers": "Accept,Content-Type",
+      "access-control-allow-methods": "GET,POST",
+      "access-control-allow-origin": "https://mydomain.tld",
+      "access-control-max-age": "600",
+    }
+  `);
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);
 });
 
 test('preflight with origin, with method, with headers, maximal', async () => {
-  const request = { method: 'OPTIONS' } as ServerRequest;
-
-  const end = vi.fn();
-
-  const response = { body: { end } } as unknown as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'OPTIONS' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([
-    { parameters: [204], return: response },
-  ]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: 'https://mydomain.tld' },
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([
-    { name: 'negotiate', parameters: [request], return: true },
+    { name: 'negotiate', parameters: [serverRequest], return: true },
     { name: 'allowMethods', value: ['GET', 'POST'] },
   ]);
 
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([
-    { name: 'negotiate', parameters: [request], return: true },
+    { name: 'negotiate', parameters: [serverRequest], return: true },
     { name: 'allowHeaders', value: ['Accept', 'Content-Type'] },
   ]);
 
   const middleware = createCorsMiddleware(
-    responseFactory,
     originNegotiator,
     methodNegotiator,
     headersNegotiator,
@@ -174,41 +133,34 @@ test('preflight with origin, with method, with headers, maximal', async () => {
     7200,
   );
 
-  expect(await middleware(request, handler)).toEqual({
-    ...response,
-    headers: {
-      ...response.headers,
-      'access-control-allow-origin': ['https://mydomain.tld'],
-      'access-control-allow-methods': ['GET', 'POST'],
-      'access-control-allow-headers': ['Accept', 'Content-Type'],
-      'access-control-allow-credentials': ['true'],
-      'access-control-expose-headers': ['X-Unknown'],
-      'access-control-max-age': ['7200'],
-    },
-  });
+  const response = await middleware(serverRequest, handler);
 
-  expect(end).toHaveBeenCalledTimes(1);
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-headers": "Accept,Content-Type",
+      "access-control-allow-methods": "GET,POST",
+      "access-control-allow-origin": "https://mydomain.tld",
+      "access-control-expose-headers": "X-Unknown",
+      "access-control-max-age": "7200",
+    }
+  `);
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);
 });
 
 test('handle without origin', async () => {
-  const request = { method: 'POST' } as ServerRequest;
-
-  const response = {} as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'POST' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([
-    { parameters: [request], return: Promise.resolve(response) },
+    { parameters: [serverRequest], return: Promise.resolve(new Response()) },
   ]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: undefined },
+    { parameters: [serverRequest], return: undefined },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
@@ -216,7 +168,6 @@ test('handle without origin', async () => {
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
 
   const middleware = createCorsMiddleware(
-    responseFactory,
     originNegotiator,
     methodNegotiator,
     headersNegotiator,
@@ -225,28 +176,25 @@ test('handle without origin', async () => {
     7200,
   );
 
-  expect(await middleware(request, handler)).toBe(response);
+  const response = await middleware(serverRequest, handler);
+
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);
 });
 
 test('handle with origin', async () => {
-  const request = { method: 'POST' } as ServerRequest;
-
-  const response = {} as Response;
+  const serverRequest = new ServerRequest('https://example.com', { method: 'POST' });
 
   const [handler, handlerMocks] = useFunctionMock<Handler>([
-    { parameters: [request], return: Promise.resolve(response) },
+    { parameters: [serverRequest], return: Promise.resolve(new Response()) },
   ]);
 
-  const [responseFactory, responseFactoryMocks] = useFunctionMock<ResponseFactory>([]);
-
   const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
-    { parameters: [request], return: 'https://mydomain.tld' },
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
   ]);
 
   const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
@@ -254,7 +202,6 @@ test('handle with origin', async () => {
   const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
 
   const middleware = createCorsMiddleware(
-    responseFactory,
     originNegotiator,
     methodNegotiator,
     headersNegotiator,
@@ -263,18 +210,17 @@ test('handle with origin', async () => {
     7200,
   );
 
-  expect(await middleware(request, handler)).toEqual({
-    ...response,
-    headers: {
-      ...response.headers,
-      'access-control-allow-origin': ['https://mydomain.tld'],
-      'access-control-allow-credentials': ['true'],
-      'access-control-expose-headers': ['X-Unknown'],
-    },
-  });
+  const response = await middleware(serverRequest, handler);
+
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-credentials": "true",
+      "access-control-allow-origin": "https://mydomain.tld",
+      "access-control-expose-headers": "X-Unknown",
+    }
+  `);
 
   expect(handlerMocks.length).toBe(0);
-  expect(responseFactoryMocks.length).toBe(0);
   expect(originNegotiatorMocks.length).toBe(0);
   expect(methodNegotiatorMocks.length).toBe(0);
   expect(headersNegotiatorMocks.length).toBe(0);

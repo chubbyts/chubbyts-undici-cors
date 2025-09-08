@@ -1,7 +1,5 @@
-import type { Handler } from '@chubbyts/chubbyts-http-types/dist/handler';
-import type { Response, ServerRequest } from '@chubbyts/chubbyts-http-types/dist/message';
-import type { Middleware } from '@chubbyts/chubbyts-http-types/dist/middleware';
-import type { ResponseFactory } from '@chubbyts/chubbyts-http-types/dist/message-factory';
+import type { Handler, Middleware, ServerRequest } from '@chubbyts/chubbyts-undici-server/dist/server';
+import { Response } from '@chubbyts/chubbyts-undici-server/dist/server';
 import type { HeadersNegotiator, MethodNegotiator, OriginNegotiator } from './negotiation.js';
 
 const isPreflight = (request: ServerRequest) => request.method.toUpperCase() === 'OPTIONS';
@@ -13,17 +11,29 @@ const responseMiddlewarePipeline = (middlewares: Array<ResponseMiddleware>): Res
 };
 
 const addAllowOrigin = (allowOrigin: string): ResponseMiddleware => {
-  return (response: Response): Response => ({
-    ...response,
-    headers: { ...response.headers, 'access-control-allow-origin': [allowOrigin] },
-  });
+  return (response: Response): Response => {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-allow-origin': allowOrigin,
+      },
+    });
+  };
 };
 
 const addAllowMethod = (allowedMethods: Array<string>): ResponseMiddleware => {
-  return (response: Response): Response => ({
-    ...response,
-    headers: { ...response.headers, 'access-control-allow-methods': allowedMethods },
-  });
+  return (response: Response): Response => {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-allow-methods': allowedMethods.join(','),
+      },
+    });
+  };
 };
 
 const addExposeHeaders = (exposeHeaders: Array<string>): ResponseMiddleware => {
@@ -32,34 +42,58 @@ const addExposeHeaders = (exposeHeaders: Array<string>): ResponseMiddleware => {
       return response;
     }
 
-    return { ...response, headers: { ...response.headers, 'access-control-expose-headers': exposeHeaders } };
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-expose-headers': exposeHeaders.join(','),
+      },
+    });
   };
 };
 
 const addAllowCredentials = (allowCredentials: boolean): ResponseMiddleware => {
-  return (response: Response): Response => ({
-    ...response,
-    headers: { ...response.headers, 'access-control-allow-credentials': [allowCredentials ? 'true' : 'false'] },
-  });
+  return (response: Response): Response => {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-allow-credentials': allowCredentials ? 'true' : 'false',
+      },
+    });
+  };
 };
 
 const addAllowHeaders = (allowHeaders: Array<string>): ResponseMiddleware => {
-  return (response: Response): Response => ({
-    ...response,
-    headers: { ...response.headers, 'access-control-allow-headers': allowHeaders },
-  });
+  return (response: Response): Response => {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-allow-headers': allowHeaders.join(','),
+      },
+    });
+  };
 };
 
 const addMaxAge = (maxAge: number): ResponseMiddleware => {
-  return (response: Response): Response => ({
-    ...response,
-    headers: { ...response.headers, 'access-control-max-age': [maxAge.toString()] },
-  });
+  return (response: Response): Response => {
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        ...Object.fromEntries(response.headers.entries()),
+        'access-control-max-age': maxAge.toString(),
+      },
+    });
+  };
 };
 
 const handlePreflight = (
   request: ServerRequest,
-  responseFactory: ResponseFactory,
   originNegotiator: OriginNegotiator,
   methodNegotiator: MethodNegotiator,
   headersNegotiator: HeadersNegotiator,
@@ -67,8 +101,7 @@ const handlePreflight = (
   allowCredentials: boolean,
   maxAge: number,
 ) => {
-  const response = responseFactory(204);
-  response.body.end();
+  const response = new Response(undefined, { status: 204, statusText: 'No Content' });
 
   const allowOrigin = originNegotiator(request);
 
@@ -109,7 +142,6 @@ const handle = async (
 };
 
 export const createCorsMiddleware = (
-  responseFactory: ResponseFactory,
   originNegotiator: OriginNegotiator,
   methodNegotiator: MethodNegotiator,
   headersNegotiator: HeadersNegotiator,
@@ -121,7 +153,6 @@ export const createCorsMiddleware = (
     if (isPreflight(request)) {
       return handlePreflight(
         request,
-        responseFactory,
         originNegotiator,
         methodNegotiator,
         headersNegotiator,
