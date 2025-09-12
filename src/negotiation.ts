@@ -1,4 +1,4 @@
-import type { Method, ServerRequest } from '@chubbyts/chubbyts-http-types/dist/message';
+import type { ServerRequest } from '@chubbyts/chubbyts-undici-server/dist/server';
 
 export type AllowOrigin = (origin: string) => boolean;
 
@@ -18,7 +18,7 @@ export type OriginNegotiator = (request: ServerRequest) => string | undefined;
 
 export const createOriginNegotiator = (allowOrigins: Array<AllowOrigin>): OriginNegotiator => {
   return (request: ServerRequest): string | undefined => {
-    const origin = request.headers['origin'] ? request.headers['origin'][0] : undefined;
+    const origin = request.headers.get('origin');
 
     if (!origin) {
       return undefined;
@@ -39,12 +39,10 @@ export type MethodNegotiator = {
   allowMethods: Array<string>;
 };
 
-export const createMethodNegotiator = (allowMethods: Array<Method>): MethodNegotiator => {
+export const createMethodNegotiator = (allowMethods: Array<string>): MethodNegotiator => {
   return {
     negotiate: (request: ServerRequest): boolean => {
-      const accessControlRequestMethod = request.headers['access-control-request-method']
-        ? request.headers['access-control-request-method'][0]
-        : undefined;
+      const accessControlRequestMethod = request.headers.get('access-control-request-method');
 
       if (!accessControlRequestMethod) {
         return false;
@@ -64,17 +62,15 @@ export type HeadersNegotiator = {
 export const createHeadersNegotiator = (allowHeaders: Array<string>): HeadersNegotiator => {
   return {
     negotiate: (request: ServerRequest): boolean => {
-      const accessControlRequestHeaders = request.headers['access-control-request-headers']
-        ? request.headers['access-control-request-headers']
-        : undefined;
+      const accessControlRequestHeaders = request.headers.get('access-control-request-headers');
 
       if (!accessControlRequestHeaders) {
         return false;
       }
 
-      return accessControlRequestHeaders.every((accessControlRequestHeader) => {
+      return accessControlRequestHeaders.split(',').every((accessControlRequestHeader) => {
         return allowHeaders.some(
-          (allowHeader: string) => allowHeader.toUpperCase() === accessControlRequestHeader.toUpperCase(),
+          (allowHeader: string) => allowHeader.toUpperCase() === accessControlRequestHeader.trim().toUpperCase(),
         );
       });
     },
