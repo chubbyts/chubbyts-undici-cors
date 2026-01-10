@@ -64,7 +64,7 @@ const handler: Handler = async (serverRequest: ServerRequest) => {
 
 ## Copyright
 
-2025 Dominik Zogg
+2026 Dominik Zogg
 
 [1]: https://www.npmjs.com/package/@chubbyts/chubbyts-undici-cors
 [2]: https://www.npmjs.com/package/@chubbyts/chubbyts-http-types
