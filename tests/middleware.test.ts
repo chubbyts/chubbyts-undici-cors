@@ -23,6 +23,8 @@ test('preflight without origin', async () => {
 
   const response = await middleware(serverRequest, handler);
 
+  expect(response.status).toBe(204);
+  expect(response.statusText).toBe('No Content');
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
 
   expect(handlerMocks.length).toBe(0);
@@ -128,20 +130,22 @@ test('preflight with origin, with method, with headers, maximal', async () => {
     originNegotiator,
     methodNegotiator,
     headersNegotiator,
-    ['X-Unknown'],
+    ['X-Unknown', 'X-Trace'],
     true,
     7200,
   );
 
   const response = await middleware(serverRequest, handler);
 
+  expect(response.status).toBe(204);
+  expect(response.statusText).toBe('No Content');
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
     {
       "access-control-allow-credentials": "true",
       "access-control-allow-headers": "Accept,Content-Type",
       "access-control-allow-methods": "GET,POST",
       "access-control-allow-origin": "https://mydomain.tld",
-      "access-control-expose-headers": "X-Unknown",
+      "access-control-expose-headers": "X-Unknown,X-Trace",
       "access-control-max-age": "7200",
     }
   `);
