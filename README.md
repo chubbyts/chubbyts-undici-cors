@@ -24,14 +24,14 @@ A minimal cors middleware for chubbyts-undici-server.
 ## Requirements
 
  * node: 20
- * [@chubbyts/chubbyts-undici-server][2]: ^1.0.3
+ * [@chubbyts/chubbyts-undici-server][2]: ^1.1.0
 
 ## Installation
 
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-undici-cors][1].
 
 ```ts
-npm i @chubbyts/chubbyts-undici-cors@^1.0.1
+npm i @chubbyts/chubbyts-undici-cors@^1.1.0
 ```
 
 ## Usage
