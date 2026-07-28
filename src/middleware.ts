@@ -55,12 +55,16 @@ const addExposeHeaders = (exposeHeaders: Array<string>): ResponseMiddleware => {
 
 const addAllowCredentials = (allowCredentials: boolean): ResponseMiddleware => {
   return (response: Response): Response => {
+    if (!allowCredentials) {
+      return response;
+    }
+
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: {
         ...Object.fromEntries(response.headers.entries()),
-        'access-control-allow-credentials': allowCredentials ? 'true' : 'false',
+        'access-control-allow-credentials': 'true',
       },
     });
   };

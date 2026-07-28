@@ -56,7 +56,6 @@ test('preflight with origin, without method, without headers', async () => {
 
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
     {
-      "access-control-allow-credentials": "false",
       "access-control-allow-origin": "https://mydomain.tld",
       "access-control-max-age": "600",
     }
@@ -93,7 +92,6 @@ test('preflight with origin, with method, with headers, minimal', async () => {
 
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
     {
-      "access-control-allow-credentials": "false",
       "access-control-allow-headers": "Accept,Content-Type",
       "access-control-allow-methods": "GET,POST",
       "access-control-allow-origin": "https://mydomain.tld",
