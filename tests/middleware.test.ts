@@ -25,7 +25,11 @@ test('preflight without origin', async () => {
 
   expect(response.status).toBe(204);
   expect(response.statusText).toBe('No Content');
-  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "vary": "origin",
+    }
+  `);
 
   expect(handlerMocks).toHaveLength(0);
   expect(originNegotiatorMocks).toHaveLength(0);
@@ -58,6 +62,7 @@ test('preflight with origin, without method, without headers', async () => {
     {
       "access-control-allow-origin": "https://mydomain.tld",
       "access-control-max-age": "600",
+      "vary": "origin",
     }
   `);
 
@@ -96,6 +101,7 @@ test('preflight with origin, with method, with headers, minimal', async () => {
       "access-control-allow-methods": "GET,POST",
       "access-control-allow-origin": "https://mydomain.tld",
       "access-control-max-age": "600",
+      "vary": "origin",
     }
   `);
 
@@ -145,6 +151,7 @@ test('preflight with origin, with method, with headers, maximal', async () => {
       "access-control-allow-origin": "https://mydomain.tld",
       "access-control-expose-headers": "X-Unknown,X-Trace",
       "access-control-max-age": "7200",
+      "vary": "origin",
     }
   `);
 
@@ -180,7 +187,11 @@ test('handle without origin', async () => {
 
   const response = await middleware(serverRequest, handler);
 
-  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "vary": "origin",
+    }
+  `);
 
   expect(handlerMocks).toHaveLength(0);
   expect(originNegotiatorMocks).toHaveLength(0);
@@ -219,6 +230,109 @@ test('handle with origin', async () => {
       "access-control-allow-credentials": "true",
       "access-control-allow-origin": "https://mydomain.tld",
       "access-control-expose-headers": "X-Unknown",
+      "vary": "origin",
+    }
+  `);
+
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
+});
+
+test('handle with origin and existing vary header', async () => {
+  const serverRequest = new ServerRequest('https://example.com', { method: 'POST' });
+
+  const [handler, handlerMocks] = useFunctionMock<Handler>([
+    {
+      parameters: [serverRequest],
+      return: Promise.resolve(new Response(undefined, { headers: { vary: 'Accept-Encoding' } })),
+    },
+  ]);
+
+  const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
+  ]);
+
+  const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
+
+  const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
+
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
+
+  const response = await middleware(serverRequest, handler);
+
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-origin": "https://mydomain.tld",
+      "vary": "Accept-Encoding, origin",
+    }
+  `);
+
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
+});
+
+test('handle with origin and vary header already containing origin', async () => {
+  const serverRequest = new ServerRequest('https://example.com', { method: 'POST' });
+
+  const [handler, handlerMocks] = useFunctionMock<Handler>([
+    {
+      parameters: [serverRequest],
+      return: Promise.resolve(new Response(undefined, { headers: { vary: 'Accept-Encoding, Origin' } })),
+    },
+  ]);
+
+  const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
+  ]);
+
+  const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
+
+  const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
+
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
+
+  const response = await middleware(serverRequest, handler);
+
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-origin": "https://mydomain.tld",
+      "vary": "Accept-Encoding, Origin",
+    }
+  `);
+
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
+});
+
+test('handle with origin and wildcard vary header', async () => {
+  const serverRequest = new ServerRequest('https://example.com', { method: 'POST' });
+
+  const [handler, handlerMocks] = useFunctionMock<Handler>([
+    { parameters: [serverRequest], return: Promise.resolve(new Response(undefined, { headers: { vary: '*' } })) },
+  ]);
+
+  const [originNegotiator, originNegotiatorMocks] = useFunctionMock<OriginNegotiator>([
+    { parameters: [serverRequest], return: 'https://mydomain.tld' },
+  ]);
+
+  const [methodNegotiator, methodNegotiatorMocks] = useObjectMock<MethodNegotiator>([]);
+
+  const [headersNegotiator, headersNegotiatorMocks] = useObjectMock<HeadersNegotiator>([]);
+
+  const middleware = createCorsMiddleware(originNegotiator, methodNegotiator, headersNegotiator);
+
+  const response = await middleware(serverRequest, handler);
+
+  expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot(`
+    {
+      "access-control-allow-origin": "https://mydomain.tld",
+      "vary": "*",
     }
   `);
 

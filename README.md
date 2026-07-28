@@ -31,7 +31,7 @@ A minimal cors middleware for chubbyts-undici-server.
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-undici-cors][1].
 
 ```ts
-npm i @chubbyts/chubbyts-undici-cors@^1.2.0
+npm i @chubbyts/chubbyts-undici-cors@^1.3.0
 ```
 
 ## Usage
@@ -61,6 +61,8 @@ const handler: Handler = async (serverRequest: ServerRequest) => {
   const response = await corsMiddleware(serverRequest, handler);
 })();
 ```
+
+**Warning:** When using `createAllowOriginRegex`, always anchor the pattern with `^` and `$` and escape dots. An unanchored pattern like `/example\.com/` also matches unintended origins such as `https://evil-example.com` or `https://example.com.attacker.tld`.
 
 ## Copyright
 

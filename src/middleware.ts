@@ -10,6 +10,24 @@ const responseMiddlewarePipeline = (middlewares: Array<ResponseMiddleware>): Res
   return (response: Response) => middlewares.reduce((result, middleware) => middleware(result), response);
 };
 
+const withVaryOrigin = (response: Response): Response => {
+  const vary = response.headers.get('vary');
+  const varyValues = vary ? vary.split(',').map((value) => value.trim()) : [];
+
+  if (varyValues.some((value) => value.toLowerCase() === 'origin' || value === '*')) {
+    return response;
+  }
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: {
+      ...Object.fromEntries(response.headers.entries()),
+      vary: [...varyValues, 'origin'].join(', '),
+    },
+  });
+};
+
 const addAllowOrigin = (allowOrigin: string): ResponseMiddleware => {
   return (response: Response): Response => {
     return new Response(response.body, {
@@ -105,7 +123,7 @@ const handlePreflight = (
   allowCredentials: boolean,
   maxAge: number,
 ) => {
-  const response = new Response(undefined, { status: 204, statusText: 'No Content' });
+  const response = withVaryOrigin(new Response(undefined, { status: 204, statusText: 'No Content' }));
 
   const allowOrigin = originNegotiator(request);
 
@@ -130,7 +148,7 @@ const handle = async (
   exposeHeaders: Array<string>,
   allowCredentials: boolean,
 ): Promise<Response> => {
-  const response = await handler(request);
+  const response = withVaryOrigin(await handler(request));
 
   const allowOrigin = originNegotiator(request);
 
