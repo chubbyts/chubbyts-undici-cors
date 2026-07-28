@@ -31,7 +31,7 @@ A minimal cors middleware for chubbyts-undici-server.
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-undici-cors][1].
 
 ```ts
-npm i @chubbyts/chubbyts-undici-cors@^1.1.3
+npm i @chubbyts/chubbyts-undici-cors@^1.2.0
 ```
 
 ## Usage
