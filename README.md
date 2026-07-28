@@ -24,7 +24,7 @@ A minimal cors middleware for chubbyts-undici-server.
 ## Requirements
 
  * node: 22
- * [@chubbyts/chubbyts-undici-server][2]: ^1.1.3
+ * [@chubbyts/chubbyts-undici-server][2]: ^1.2.0
 
 ## Installation
 
