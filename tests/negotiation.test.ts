@@ -46,9 +46,9 @@ describe('createOriginNegotiator', () => {
 
     const originNegotiator = createOriginNegotiator([allowOrigin]);
 
-    expect(originNegotiator(serverRequest)).toBe(undefined);
+    expect(originNegotiator(serverRequest)).toBeUndefined();
 
-    expect(allowOriginMocks.length).toBe(0);
+    expect(allowOriginMocks).toHaveLength(0);
   });
 
   test('match', async () => {
@@ -66,8 +66,8 @@ describe('createOriginNegotiator', () => {
 
     expect(originNegotiator(serverRequest)).toBe('https://mydomain.tld');
 
-    expect(allowOrigin1Mocks.length).toBe(0);
-    expect(allowOrigin2Mocks.length).toBe(0);
+    expect(allowOrigin1Mocks).toHaveLength(0);
+    expect(allowOrigin2Mocks).toHaveLength(0);
   });
 
   test('not match', async () => {
@@ -83,10 +83,10 @@ describe('createOriginNegotiator', () => {
 
     const originNegotiator = createOriginNegotiator([allowOrigin1, allowOrigin2]);
 
-    expect(originNegotiator(serverRequest)).toBe(undefined);
+    expect(originNegotiator(serverRequest)).toBeUndefined();
 
-    expect(allowOrigin1Mocks.length).toBe(0);
-    expect(allowOrigin2Mocks.length).toBe(0);
+    expect(allowOrigin1Mocks).toHaveLength(0);
+    expect(allowOrigin2Mocks).toHaveLength(0);
   });
 });
 
@@ -137,29 +137,13 @@ describe('createHeadersNegotiator', () => {
     expect(headersNegotiator.negotiate(serverRequest)).toBe(false);
   });
 
-  test('with same headers', () => {
+  test.each([
+    ['with same headers', 'Authorization, Content-Type, Accept'],
+    ['with same headers lower case', 'authorization, content-Type, accept'],
+    ['with less headers', 'Authorization'],
+  ])('%s', (name, accessControlRequestHeaders) => {
     const serverRequest = new ServerRequest('https://example.com/', {
-      headers: { 'access-control-request-headers': 'Authorization, Content-Type, Accept' },
-    });
-
-    const headersNegotiator = createHeadersNegotiator(['Authorization', 'Accept', 'Content-Type']);
-
-    expect(headersNegotiator.negotiate(serverRequest)).toBe(true);
-  });
-
-  test('with same headers lower case', () => {
-    const serverRequest = new ServerRequest('https://example.com/', {
-      headers: { 'access-control-request-headers': 'authorization, content-Type, accept' },
-    });
-
-    const headersNegotiator = createHeadersNegotiator(['Authorization', 'Accept', 'Content-Type']);
-
-    expect(headersNegotiator.negotiate(serverRequest)).toBe(true);
-  });
-
-  test('with less headers', () => {
-    const serverRequest = new ServerRequest('https://example.com/', {
-      headers: { 'access-control-request-headers': 'Authorization' },
+      headers: { 'access-control-request-headers': accessControlRequestHeaders },
     });
 
     const headersNegotiator = createHeadersNegotiator(['Authorization', 'Accept', 'Content-Type']);

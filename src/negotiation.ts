@@ -10,7 +10,7 @@ export const createAllowOriginExact = (allowOrigin: string): AllowOrigin => {
 
 export const createAllowOriginRegex = (allowOrigin: RegExp): AllowOrigin => {
   return (origin: string): boolean => {
-    return origin.match(allowOrigin) !== null;
+    return allowOrigin.exec(origin) !== null;
   };
 };
 
@@ -48,7 +48,7 @@ export const createMethodNegotiator = (allowMethods: Array<string>): MethodNegot
         return false;
       }
 
-      return allowMethods.some((allowMethod: string) => allowMethod === accessControlRequestMethod.toUpperCase());
+      return allowMethods.includes(accessControlRequestMethod.toUpperCase());
     },
     allowMethods,
   };

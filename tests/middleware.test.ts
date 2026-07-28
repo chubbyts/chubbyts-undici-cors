@@ -27,10 +27,10 @@ test('preflight without origin', async () => {
   expect(response.statusText).toBe('No Content');
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
 
 test('preflight with origin, without method, without headers', async () => {
@@ -62,10 +62,10 @@ test('preflight with origin, without method, without headers', async () => {
     }
   `);
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
 
 test('preflight with origin, with method, with headers, minimal', async () => {
@@ -101,10 +101,10 @@ test('preflight with origin, with method, with headers, minimal', async () => {
     }
   `);
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
 
 test('preflight with origin, with method, with headers, maximal', async () => {
@@ -150,10 +150,10 @@ test('preflight with origin, with method, with headers, maximal', async () => {
     }
   `);
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
 
 test('handle without origin', async () => {
@@ -184,10 +184,10 @@ test('handle without origin', async () => {
 
   expect(Object.fromEntries(response.headers.entries())).toMatchInlineSnapshot('{}');
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
 
 test('handle with origin', async () => {
@@ -224,8 +224,8 @@ test('handle with origin', async () => {
     }
   `);
 
-  expect(handlerMocks.length).toBe(0);
-  expect(originNegotiatorMocks.length).toBe(0);
-  expect(methodNegotiatorMocks.length).toBe(0);
-  expect(headersNegotiatorMocks.length).toBe(0);
+  expect(handlerMocks).toHaveLength(0);
+  expect(originNegotiatorMocks).toHaveLength(0);
+  expect(methodNegotiatorMocks).toHaveLength(0);
+  expect(headersNegotiatorMocks).toHaveLength(0);
 });
