@@ -55,6 +55,23 @@ describe('originNegotiatorServiceFactory', () => {
     expect(containerMocks).toHaveLength(0);
   });
 
+  test('with allowOrigins, without createAllowOriginExact', () => {
+    const [container, containerMocks] = useObjectMock<Container>([
+      {
+        name: 'get',
+        parameters: ['config'],
+        return: { chubbyts: { cors: { allowOrigins: { createAllowOriginRegex: [/^https:\/\/.*\.example\.com$/] } } } },
+      },
+    ]);
+
+    const service = originNegotiatorServiceFactory()(container);
+
+    expect(service(createRequest({ origin: 'https://app.example.com' }))).toBe('https://app.example.com');
+    expect(service(createRequest({ origin: 'Stryker was here' }))).toBeUndefined();
+
+    expect(containerMocks).toHaveLength(0);
+  });
+
   test('with name', () => {
     const [container, containerMocks] = useObjectMock<Container>([
       {
