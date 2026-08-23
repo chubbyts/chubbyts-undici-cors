@@ -24,6 +24,8 @@ A minimal cors middleware for chubbyts-undici-server.
 ## Requirements
 
  * node: 22
+ * [@chubbyts/chubbyts-dic-config-factory][5]: ^1.0.0
+ * [@chubbyts/chubbyts-dic-types][3]: ^2.3.0
  * [@chubbyts/chubbyts-undici-server][2]: ^1.2.0
 
 ## Installation
@@ -31,7 +33,7 @@ A minimal cors middleware for chubbyts-undici-server.
 Through [NPM](https://www.npmjs.com) as [@chubbyts/chubbyts-undici-cors][1].
 
 ```ts
-npm i @chubbyts/chubbyts-undici-cors@^1.3.0
+npm i @chubbyts/chubbyts-undici-cors@^1.4.0
 ```
 
 ## Usage
@@ -64,9 +66,71 @@ const handler: Handler = async (serverRequest: ServerRequest) => {
 
 **Warning:** When using `createAllowOriginRegex`, always anchor the pattern with `^` and `$` and escape dots. An unanchored pattern like `/example\.com/` also matches unintended origins such as `https://evil-example.com` or `https://example.com.attacker.tld`.
 
+### Service factories (chubbyts-dic-config)
+
+The package ships service factories (abstract factories built on [chubbyts-dic-config-factory][5]) for a [chubbyts-dic-config][4] (or any [chubbyts-dic-types][3] compatible) container within `@chubbyts/chubbyts-undici-cors/dist/service-factory`, configured through `config.chubbyts.cors`:
+
+```ts
+import type { ConfigFactory } from '@chubbyts/chubbyts-dic-config/dist/dic-config';
+import { createContainerByConfigFactory } from '@chubbyts/chubbyts-dic-config/dist/dic-config';
+import type { CorsConfig } from '@chubbyts/chubbyts-undici-cors/dist/service-factory';
+import { corsMiddlewareServiceFactory } from '@chubbyts/chubbyts-undici-cors/dist/service-factory';
+import type { Middleware } from '@chubbyts/chubbyts-undici-server/dist/server';
+
+const container = createContainerByConfigFactory({
+  chubbyts: {
+    cors: {
+      allowOrigins: {
+        createAllowOriginExact: ['https://app.example.com'],
+        createAllowOriginRegex: [/^https?\:\/\/localhost(\:\d+)?$/],
+      },
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+      allowHeaders: ['Content-Type', 'Accept'],
+      // exposeHeaders: [],
+      // allowCredentials: false,
+      // maxAge: 600,
+    } satisfies CorsConfig,
+  },
+  dependencies: {
+    factories: new Map<string, ConfigFactory>([['corsMiddleware', corsMiddlewareServiceFactory()]]),
+  },
+})();
+
+const corsMiddleware = container.get<Middleware>('corsMiddleware');
+```
+
+The `corsMiddlewareServiceFactory` uses the services `corsOriginNegotiator`, `corsMethodNegotiator` and `corsHeadersNegotiator` of the container if registered, and creates them through the shipped `originNegotiatorServiceFactory`, `methodNegotiatorServiceFactory` and `headersNegotiatorServiceFactory` otherwise. Register any of them under its name to replace it (e.g. a custom `OriginNegotiator`) or to share it with other services.
+
+#### With names
+
+To serve different parts of an api with different cors rules, the same factories can be registered multiple times with a name: the config is then read from `config.chubbyts.cors.<name>` and the name gets appended to each service id (`corsMiddlewareapi`, `corsOriginNegotiatorapi`, ...).
+
+```ts
+const container = createContainerByConfigFactory({
+  chubbyts: {
+    cors: {
+      api: { allowOrigins: { createAllowOriginExact: ['https://app.example.com'] }, allowMethods: ['GET', 'POST'] },
+      admin: { allowOrigins: { createAllowOriginExact: ['https://admin.example.com'] }, allowMethods: ['GET', 'DELETE'] },
+    } satisfies Record<string, CorsConfig>,
+  },
+  dependencies: {
+    factories: new Map<string, ConfigFactory>([
+      ['corsMiddlewareapi', corsMiddlewareServiceFactory('api')],
+      ['corsMiddlewareadmin', corsMiddlewareServiceFactory('admin')],
+    ]),
+  },
+})();
+
+const apiCorsMiddleware = container.get<Middleware>('corsMiddlewareapi');
+const adminCorsMiddleware = container.get<Middleware>('corsMiddlewareadmin');
+```
+
 ## Copyright
 
 2026 Dominik Zogg
 
 [1]: https://www.npmjs.com/package/@chubbyts/chubbyts-undici-cors
-[2]: https://www.npmjs.com/package/@chubbyts/chubbyts-http-types
+[2]: https://www.npmjs.com/package/@chubbyts/chubbyts-undici-server
+[3]: https://www.npmjs.com/package/@chubbyts/chubbyts-dic-types
+[4]: https://www.npmjs.com/package/@chubbyts/chubbyts-dic-config
+[5]: https://www.npmjs.com/package/@chubbyts/chubbyts-dic-config-factory
